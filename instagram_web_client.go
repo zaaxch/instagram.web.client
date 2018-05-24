@@ -73,61 +73,97 @@ func Init(password string, username string, cookieString string) (instagramWebCl
 	return instagramWebClient, err
 }
 
-type Login struct {
+type LoginOutput struct {
 	Authenticated bool   `json:"authenticated"`
 	User          bool   `json:"user"`
 	Status        string `json:"status"`
 }
 
-func (i InstagramWebClient) PostLogin(password string, username string) (Login, error) {
+func (i InstagramWebClient) PostLogin(password string, username string) (LoginOutput, error) {
 	params := url.Values{}
 	params.Set("password", password)
 	params.Set("username", username)
 	res, err := i.makeRequest(http.MethodPost, "https://www.instagram.com/accounts/login/ajax/", params)
 	if err != nil {
-		return Login{}, err
+		return LoginOutput{}, err
 	} else {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return Login{}, err
+			return LoginOutput{}, err
 		} else {
-			var data Login
+			var data LoginOutput
 			err := json.Unmarshal(body, &data)
 			if err != nil {
-				return Login{}, err
+				return LoginOutput{}, err
 			}
 			if !data.Authenticated {
-				return Login{}, errors.New("Wrong email or password.")
+				return LoginOutput{}, errors.New("Wrong email or password.")
 			}
 			return data, nil
 		}
 	}
 }
 
-type PostLike struct {
+type PostLikeOutput struct {
 	Status string `json:"status"`
 }
 
-func (i InstagramWebClient) PostPostLike(id string) (PostLike, error) {
+func (i InstagramWebClient) PostPostLike(id string) (PostLikeOutput, error) {
 	res, err := i.makeRequest(http.MethodPost, fmt.Sprintf("https://www.instagram.com/web/likes/%s/like/", id), nil)
 	if err != nil {
-		return PostLike{}, err
+		return PostLikeOutput{}, err
 	} else {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return PostLike{}, err
+			return PostLikeOutput{}, err
 		} else {
-			var data PostLike
+			var data PostLikeOutput
 			err := json.Unmarshal(body, &data)
 			if err != nil {
-				return PostLike{}, err
+				return PostLikeOutput{}, err
 			}
 			return data, nil
 		}
 	}
 }
 
-type TagFeed struct {
+type User struct {
+	Id string `json:"id"`
+	ProfilePicUrl string `json:"profile_pic_url"`
+	Username string `json:"username"`
+}
+
+type HomeOutput struct {
+	Data struct {
+		User User `json:"user"`
+	} `json:"data"`
+}
+
+func (i InstagramWebClient) GetHome() (HomeOutput, error) {
+
+	params := url.Values{}
+	params.Set("query_id", "17861995474116400")
+	params.Set("id", i.UserIdString())
+	params.Set("fetch_media_item_count", "10")
+	res, err := i.makeRequest(http.MethodGet, GRAPHQL_ROOT.String(), params)
+	if err != nil {
+		return HomeOutput{}, err
+	} else {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return HomeOutput{}, err
+		} else {
+			var data HomeOutput
+			err := json.Unmarshal(body, &data)
+			if err != nil {
+				return HomeOutput{}, err
+			}
+			return data, nil
+		}
+	}
+}
+
+type TagFeedOutout struct {
 	Data struct {
 		Hashtag struct {
 			Name string `json:"name"`
@@ -147,34 +183,78 @@ type TagFeed struct {
 	} `json:"data"`
 }
 
-func (i InstagramWebClient) GetTagFeed(tag string) (TagFeed, error) {
+func (i InstagramWebClient) GetTagFeed(tag string) (TagFeedOutout, error) {
 	params := url.Values{}
 	params.Set("query_id", "17875800862117404")
 	params.Set("tag_name", tag)
 	params.Set("first", "10")
 	res, err := i.makeRequest(http.MethodGet, GRAPHQL_ROOT.String(), params)
 	if err != nil {
-		return TagFeed{}, err
+		return TagFeedOutout{}, err
 	} else {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return TagFeed{}, err
+			return TagFeedOutout{}, err
 		} else {
-			var data TagFeed
+			var data TagFeedOutout
 			err := json.Unmarshal(body, &data)
 			if err != nil {
-				return TagFeed{}, err
+				return TagFeedOutout{}, err
 			}
 			return data, nil
 		}
 	}
 }
 
-type UserFollowing struct {
+type UserFollowersOutput struct {
+	Data struct {
+		User struct {
+			EdgeFollowedBy struct {
+				Count int `json:"count"`
+				Edges []struct {
+					Node struct {
+						Id            string `json:"id"`
+						ProfilePicUrl string `json:"profile_pic_url"`
+						Username      string `json:"username"`
+					} `json:"node"`
+				}
+				PageInfo struct {
+					HasNextPage bool   `json:"has_next_page"`
+					EndCursor   string `json:"end_cursor"`
+				} `json:"page_info"`
+			} `json:"edge_followed_by"`
+		} `json:"user"`
+	} `json:"data"`
+}
+
+func (i InstagramWebClient) GetUserFollowers() (UserFollowersOutput, error) {
+	params := url.Values{}
+	params.Set("query_id", "17851374694183129")
+	params.Set("id", i.UserIdString())
+	params.Set("first", "10")
+	res, err := i.makeRequest(http.MethodGet, GRAPHQL_ROOT.String(), params)
+	if err != nil {
+		return UserFollowersOutput{}, err
+	} else {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return UserFollowersOutput{}, err
+		} else {
+			var data UserFollowersOutput
+			err := json.Unmarshal(body, &data)
+			if err != nil {
+				return UserFollowersOutput{}, err
+			}
+			return data, nil
+		}
+	}
+}
+
+type UserFollowingOutput struct {
 	Data struct {
 		User struct {
 			EdgeFollow struct {
-				Count int64 `json:"count"`
+				Count int `json:"count"`
 				Edges []struct {
 					Node struct {
 						Id            string `json:"id"`
@@ -191,37 +271,33 @@ type UserFollowing struct {
 	} `json:"data"`
 }
 
-func (i InstagramWebClient) GetUserFollowing() (UserFollowing, error) {
+func (i InstagramWebClient) GetUserFollowing() (UserFollowingOutput, error) {
 	params := url.Values{}
 	params.Set("query_id", "17874545323001329")
-	params.Set("id", i.GetUserId().Id)
+	params.Set("id", i.UserIdString())
 	params.Set("first", "10")
 	res, err := i.makeRequest(http.MethodGet, GRAPHQL_ROOT.String(), params)
 	if err != nil {
-		return UserFollowing{}, err
+		return UserFollowingOutput{}, err
 	} else {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return UserFollowing{}, err
+			return UserFollowingOutput{}, err
 		} else {
-			var data UserFollowing
+			var data UserFollowingOutput
 			err := json.Unmarshal(body, &data)
 			if err != nil {
-				return UserFollowing{}, err
+				return UserFollowingOutput{}, err
 			}
 			return data, nil
 		}
 	}
 }
 
-type UserId struct {
-	Id string `json:"id"`
-}
-
-func (i InstagramWebClient) GetUserId() (userId UserId) {
+func (i InstagramWebClient) UserIdString() (userIdString string) {
 	for _, cookie := range i.Client.Jar.Cookies(&INSTAGRAM_ROOT) {
 		if cookie.Name == "ds_user_id" {
-			userId.Id = cookie.Value
+			userIdString = cookie.Value
 			break
 		}
 	}
@@ -269,9 +345,9 @@ func (i *InstagramWebClient) makeRequest(method string, url string, body url.Val
 		return &http.Response{}, err
 	}
 	if res.StatusCode != 200 {
-		return &http.Response{}, errors.New("HTTPError")
+		return &http.Response{}, errors.New("Something went wrong. Please try again.")
+		//return &http.Response{}, errors.New(string(body))
 	}
-
 	i.Client.Jar.SetCookies(&INSTAGRAM_ROOT, res.Cookies())
 	for _, cookie := range i.Client.Jar.Cookies(&INSTAGRAM_ROOT) {
 		if cookie.Name == "csrftoken" {
