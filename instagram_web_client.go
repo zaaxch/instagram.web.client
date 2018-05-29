@@ -1,15 +1,15 @@
 package instagram_web_client
 
 import (
-	"net/http"
+	"encoding/json"
 	"fmt"
-	"net/http/cookiejar"
+	"github.com/pkg/errors"
 	"golang.org/x/net/publicsuffix"
+	"io/ioutil"
+	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
-	"io/ioutil"
-	"github.com/pkg/errors"
-	"encoding/json"
 )
 
 type InstagramWebClient struct {
@@ -74,9 +74,9 @@ func Init(password string, username string, cookieString string) (instagramWebCl
 }
 
 type LoginOutput struct {
-	Authenticated bool   `json:"authenticated"`
-	User          bool   `json:"user"`
-	Status        string `json:"status"`
+	Authenticated bool   `json:"authenticated" bson:"authenticated"`
+	User          bool   `json:"user" bson:"user"`
+	Status        string `json:"status" bson:"status"`
 }
 
 func (i InstagramWebClient) PostLogin(password string, username string) (LoginOutput, error) {
@@ -105,7 +105,7 @@ func (i InstagramWebClient) PostLogin(password string, username string) (LoginOu
 }
 
 type PostLikeOutput struct {
-	Status string `json:"status"`
+	Status string `json:"status" bson:"status"`
 }
 
 func (i InstagramWebClient) PostPostLike(id string) (PostLikeOutput, error) {
@@ -128,15 +128,15 @@ func (i InstagramWebClient) PostPostLike(id string) (PostLikeOutput, error) {
 }
 
 type User struct {
-	Id string `json:"id"`
-	ProfilePicUrl string `json:"profile_pic_url"`
-	Username string `json:"username"`
+	Id            string `json:"id" bson:"id"`
+	ProfilePicUrl string `json:"profile_pic_url" bson:"profile_pic_url"`
+	Username      string `json:"username" bson:"username"`
 }
 
 type HomeOutput struct {
 	Data struct {
-		User User `json:"user"`
-	} `json:"data"`
+		User User `json:"user" bson:"user"`
+	} `json:"data" bson:"data"`
 }
 
 func (i InstagramWebClient) GetHome() (HomeOutput, error) {
@@ -166,21 +166,21 @@ func (i InstagramWebClient) GetHome() (HomeOutput, error) {
 type TagFeedOutout struct {
 	Data struct {
 		Hashtag struct {
-			Name string `json:"name"`
+			Name               string `json:"name" bson:"name"`
 			EdgeHashtagToMedia struct {
 				PageInfo struct {
-					HasNextPage bool   `json:"has_next_page"`
-					EndCursor   string `json:"end_cursor"`
-				} `json:"page_info"`
+					HasNextPage bool   `json:"has_next_page" bson:"has_next_page"`
+					EndCursor   string `json:"end_cursor" bson:"end_cursor"`
+				} `json:"page_info" bson:"page_info"`
 				Edges []struct {
 					Node struct {
-						Id        string `json:"id"`
-						Shortcode string `json:"shortcode"`
-					} `json:"node"`
-				} `json:"edges"`
-			} `json:"edge_hashtag_to_media"`
-		} `json:"hashtag"`
-	} `json:"data"`
+						Id        string `json:"id" bson:"id"`
+						Shortcode string `json:"shortcode" bson:"shortcode"`
+					} `json:"node" bson:"node"`
+				} `json:"edges" bson:"edges"`
+			} `json:"edge_hashtag_to_media" bson:"edge_hashtag_to_media"`
+		} `json:"hashtag" bson:"hashtag"`
+	} `json:"data" bson:"data"`
 }
 
 func (i InstagramWebClient) GetTagFeed(tag string) (TagFeedOutout, error) {
@@ -210,21 +210,21 @@ type UserFollowersOutput struct {
 	Data struct {
 		User struct {
 			EdgeFollowedBy struct {
-				Count int `json:"count"`
+				Count int `json:"count" bson:"count"`
 				Edges []struct {
 					Node struct {
-						Id            string `json:"id"`
-						ProfilePicUrl string `json:"profile_pic_url"`
-						Username      string `json:"username"`
-					} `json:"node"`
-				}
+						Id            string `json:"id" bson:"id"`
+						ProfilePicUrl string `json:"profile_pic_url" bson:"profile_pic_url"`
+						Username      string `json:"username" bson:"username"`
+					} `json:"node" bson:"node"`
+				} `bson:"edges"`
 				PageInfo struct {
-					HasNextPage bool   `json:"has_next_page"`
-					EndCursor   string `json:"end_cursor"`
-				} `json:"page_info"`
-			} `json:"edge_followed_by"`
-		} `json:"user"`
-	} `json:"data"`
+					HasNextPage bool   `json:"has_next_page" bson:"has_next_page"`
+					EndCursor   string `json:"end_cursor" bson:"end_cursor"`
+				} `json:"page_info" bson:"page_info"`
+			} `json:"edge_followed_by" bson:"edge_followed_by"`
+		} `json:"user" bson:"user"`
+	} `json:"data" bson:"data"`
 }
 
 func (i InstagramWebClient) GetUserFollowers() (UserFollowersOutput, error) {
@@ -254,21 +254,21 @@ type UserFollowingOutput struct {
 	Data struct {
 		User struct {
 			EdgeFollow struct {
-				Count int `json:"count"`
+				Count int `json:"count" bson:"count"`
 				Edges []struct {
 					Node struct {
-						Id            string `json:"id"`
-						ProfilePicUrl string `json:"profile_pic_url"`
-						Username      string `json:"username"`
-					} `json:"node"`
-				}
+						Id            string `json:"id" bson:"id"`
+						ProfilePicUrl string `json:"profile_pic_url" bson:"profile_pic_url"`
+						Username      string `json:"username" bson:"username"`
+					} `json:"node" bson:"node"`
+				} `bson:"edges"`
 				PageInfo struct {
-					HasNextPage bool   `json:"has_next_page"`
-					EndCursor   string `json:"end_cursor"`
-				} `json:"page_info"`
-			} `json:"edge_follow"`
-		} `json:"user"`
-	} `json:"data"`
+					HasNextPage bool   `json:"has_next_page" bson:"has_next_page"`
+					EndCursor   string `json:"end_cursor" bson:"end_cursor"`
+				} `json:"page_info" gobson:"page_info"`
+			} `json:"edge_follow" bson:"edge_follow"`
+		} `json:"user" bson:"user"`
+	} `json:"data" bson:"data"`
 }
 
 func (i InstagramWebClient) GetUserFollowing() (UserFollowingOutput, error) {
